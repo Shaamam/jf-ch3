@@ -29,7 +29,59 @@ dependencies {
 - **OAuth2 Integration**: Built-in support for OAuth2 resource server patterns
 - **Error Handling**: Standardized error response formats
 
-## Step 2: Create Custom Authentication Entry Point
+## Step 2: Resource Metadata Endpoint
+
+### MCP Resource Metadata Controller (`McpResourceMetadataController.java`)
+```java
+package tools.muthuishere.todo.oauth;
+
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class ResourceMetadataController {
+
+    @Value("${mcp.auth.server.base-url}")
+    private String authServerBaseUrl;
+
+    // @Value("${mcp.authorization.server.authorize-url}")
+    // private String authorizeUrl;
+
+    // @Value("${mcp.authorization.server.token-url}")
+    // private String tokenUrl;
+
+    @Value("${mcp.server.mcp-url}")
+    private String mcpUrl;
+
+    /**
+     * OAuth 2.0 Protected Resource Metadata endpoint (without /mcp/)
+     * Required for MCP Inspector discovery
+     */
+    @GetMapping(
+            value = "/.well-known/oauth-protected-resource",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<Map<String, Object>> getGenericResourceMetadata() {
+        Map<String, Object> metadata = new java.util.HashMap<>();
+        metadata.put("resource_name", "Todo MCP Server");
+        metadata.put("resource", mcpUrl);
+        metadata.put(
+                "authorization_servers",
+                new String[] { authServerBaseUrl }
+        );
+        metadata.put("bearer_methods_supported", new String[] { "header" });
+        metadata.put("scopes_supported", new String[] { "read:email" });
+        // Return the same metadata as the MCP-specific endpoint
+        return ResponseEntity.ok(metadata);
+    }
+}
+```
+
+## Step 3: Create Custom Authentication Entry Point
 
 ### MCP Authentication Entry Point (`McpAuthenticationEntryPoint.java`)
 ```java
@@ -97,7 +149,7 @@ public class McpAuthenticationEntryPoint implements AuthenticationEntryPoint {
 - **Standardized Error Format**: Consistent JSON error responses
 - **Professional Error Messages**: Clear, actionable error descriptions
 
-## Step 3: Update Security Configuration
+## Step 4: Update Security Configuration
 
 ### Enhanced Security Config (`SecurityConfig.java`)
 ```java
@@ -184,7 +236,7 @@ public class SecurityConfig {
 - **Enhanced Public Endpoints**: Includes OAuth login redirect endpoint
 - **Improved Security Chain**: Better organized security configuration
 
-## Step 4: JWT Decoder Implementation
+## Step 5: JWT Decoder Implementation
 
 ### Firebase JWT Decoder (`FirebaseJwtDecoder.java`)
 ```java
@@ -309,57 +361,6 @@ public class FirebaseJwtDecoder implements JwtDecoder {
 }
 ```
 
-## Step 5: Resource Metadata Endpoint
-
-### MCP Resource Metadata Controller (`McpResourceMetadataController.java`)
-```java
-package tools.muthuishere.todo.oauth;
-
-import java.util.Map;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-@RestController
-public class ResourceMetadataController {
-
-    @Value("${mcp.auth.server.base-url}")
-    private String authServerBaseUrl;
-
-    // @Value("${mcp.authorization.server.authorize-url}")
-    // private String authorizeUrl;
-
-    // @Value("${mcp.authorization.server.token-url}")
-    // private String tokenUrl;
-
-    @Value("${mcp.server.mcp-url}")
-    private String mcpUrl;
-
-    /**
-     * OAuth 2.0 Protected Resource Metadata endpoint (without /mcp/)
-     * Required for MCP Inspector discovery
-     */
-    @GetMapping(
-            value = "/.well-known/oauth-protected-resource",
-            produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public ResponseEntity<Map<String, Object>> getGenericResourceMetadata() {
-        Map<String, Object> metadata = new java.util.HashMap<>();
-        metadata.put("resource_name", "Todo MCP Server");
-        metadata.put("resource", mcpUrl);
-        metadata.put(
-                "authorization_servers",
-                new String[] { authServerBaseUrl }
-        );
-        metadata.put("bearer_methods_supported", new String[] { "header" });
-        metadata.put("scopes_supported", new String[] { "read:email" });
-        // Return the same metadata as the MCP-specific endpoint
-        return ResponseEntity.ok(metadata);
-    }
-}
-```
 
 ## Step 6: Add MCP Server Configuration
 
